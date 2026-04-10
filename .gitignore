@@ -1,0 +1,4 @@
+node_modules/
+eval/results/
+eval/scorecard.json
+eval/scorecard.md

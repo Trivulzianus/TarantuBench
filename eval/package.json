@@ -1,0 +1,10 @@
+{
+  "name": "tarantubench-eval",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Evaluation harness for TarantuBench web security benchmark",
+  "scripts": {
+    "eval": "node harness.js",
+    "scorecard": "node scorecard.js"
+  }
+}
