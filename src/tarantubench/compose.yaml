@@ -1,0 +1,7 @@
+services:
+  default:
+    image: node:20-bookworm-slim
+    init: true
+    command: tail -f /dev/null
+    mem_limit: 1g
+    cpus: 1.0

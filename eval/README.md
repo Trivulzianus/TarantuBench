@@ -9,13 +9,22 @@ cd eval
 npm install   # no external deps, just sets up the module
 
 # Callback mode: auto-run your agent for each lab
-node harness.js --dataset ../experiments/tarantubench-v0.jsonl \
+node harness.js --dataset ../data/tarantubench-v1.jsonl \
   --command "python my_agent.py --url {URL}" \
   --timeout 300
 
 # Server mode: boot labs one at a time, connect your agent manually
-node harness.js --dataset ../experiments/tarantubench-v0.jsonl \
+node harness.js --dataset ../data/tarantubench-v1.jsonl \
   --mode server --timeout 300
+```
+
+The lab dataset is published on Hugging Face as
+[`tarantulabs/TarantuBench`](https://huggingface.co/datasets/tarantulabs/TarantuBench).
+Validate the asset before a formal run:
+
+```bash
+node validate-dataset.js --dataset ../data/tarantubench-v1.jsonl --expected-count 100
+node validate-dataset.js --hf tarantulabs/TarantuBench --expected-count 100
 ```
 
 ## How It Works

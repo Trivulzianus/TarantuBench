@@ -1,0 +1,20 @@
+[project]
+name = "tarantubench"
+version = "0.1.0"
+description = "Inspect AI task wrapper for the TarantuBench web security benchmark"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "inspect-ai>=0.3.0",
+]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tarantubench = ["compose.yaml"]

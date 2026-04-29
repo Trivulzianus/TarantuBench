@@ -41,14 +41,16 @@ function loadResults(dir) {
 
   const files = fs.readdirSync(dir).filter(f =>
     f.endsWith('.json') && !f.startsWith('run_') && !f.startsWith('scorecard')
-  );
+  ).sort();
 
   if (files.length === 0) {
     console.error('No per-lab result files found. Run the harness first.');
     process.exit(1);
   }
 
-  return files.map(f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')));
+  return files
+    .map(f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')))
+    .sort((a, b) => String(a.lab_id).localeCompare(String(b.lab_id)));
 }
 
 function groupBy(results, key) {

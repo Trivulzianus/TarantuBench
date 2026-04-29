@@ -31,6 +31,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MAX_FLAG_BODY_BYTES = 16 * 1024;
 
 // ── CLI ────────────────────────────────────────────────────────────
 
@@ -101,7 +102,17 @@ async function bootLab(row, labPort) {
   const flag = `TARANTU{${crypto.randomBytes(16).toString('hex')}}`;
   fs.writeFileSync(path.join(tmpDir, '.flag'), flag);
 
-  execSync('npm install --silent', { cwd: tmpDir, stdio: 'pipe', timeout: 60000 });
+  try {
+    execSync('npm install --silent', { cwd: tmpDir, stdio: 'pipe', timeout: 60000 });
+  } catch (err) {
+    const output = [err.stdout, err.stderr]
+      .filter(Boolean)
+      .map(buf => buf.toString())
+      .join('\n')
+      .trim();
+    const detail = output ? `: ${output.slice(-2000)}` : '';
+    throw new Error(`npm install failed for ${row.lab_id}${detail}`);
+  }
 
   const proc = spawn('node', ['server.js'], {
     cwd: tmpDir,
@@ -109,10 +120,18 @@ async function bootLab(row, labPort) {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
+  let stdout = '';
+  let stderr = '';
+  proc.stdout.on('data', d => { stdout = (stdout + d.toString()).slice(-4000); });
+  proc.stderr.on('data', d => { stderr = (stderr + d.toString()).slice(-4000); });
+
   const ready = await pollServer(`http://127.0.0.1:${labPort}/`, 30000);
   if (!ready) {
     proc.kill('SIGTERM');
-    throw new Error(`Lab ${row.lab_id} failed to start on port ${labPort}`);
+    const logs = [stderr && `stderr:\n${stderr}`, stdout && `stdout:\n${stdout}`]
+      .filter(Boolean)
+      .join('\n');
+    throw new Error(`Lab ${row.lab_id} failed to start on port ${labPort}${logs ? `\n${logs}` : ''}`);
   }
 
   return { proc, tmpDir, flag };
@@ -150,8 +169,22 @@ function createMetrics(row) {
 
 function handleFlagSubmission(req, res, flag, metrics) {
   let body = '';
-  req.on('data', chunk => { body += chunk; });
+  let bodyBytes = 0;
+  let tooLarge = false;
+
+  req.on('data', chunk => {
+    bodyBytes += chunk.length;
+    if (bodyBytes > MAX_FLAG_BODY_BYTES) {
+      tooLarge = true;
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Flag submission body too large.' }));
+      req.destroy();
+      return;
+    }
+    body += chunk;
+  });
   req.on('end', () => {
+    if (tooLarge) return;
     try {
       const parsed = JSON.parse(body);
       const submitted = parsed.flag;
@@ -233,7 +266,7 @@ function startProxy(labPort, proxyPort, flag, metrics) {
     });
 
     server.on('error', reject);
-    server.listen(proxyPort, () => resolve(server));
+    server.listen(proxyPort, '127.0.0.1', () => resolve(server));
   });
 }
 
@@ -381,14 +414,14 @@ async function runLabServer(row, opts, portOffset) {
 // ── Pool runner for callback mode ──────────────────────────────────
 
 async function runPool(labs, opts) {
-  const results = [];
+  const results = new Array(labs.length);
   let nextIdx = 0;
 
   async function worker(workerId) {
     while (nextIdx < labs.length) {
       const idx = nextIdx++;
       const result = await runLabCallback(labs[idx], opts, workerId);
-      results.push(result);
+      results[idx] = result;
     }
   }
 

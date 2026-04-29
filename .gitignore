@@ -2,3 +2,7 @@ node_modules/
 eval/results/
 eval/scorecard.json
 eval/scorecard.md
+logs/
+__pycache__/
+data/anthropic_api_key.txt
+*.egg-info/

@@ -5,6 +5,7 @@
   "description": "Evaluation harness for TarantuBench web security benchmark",
   "scripts": {
     "eval": "node harness.js",
-    "scorecard": "node scorecard.js"
+    "scorecard": "node scorecard.js",
+    "validate": "node validate-dataset.js"
   }
 }
